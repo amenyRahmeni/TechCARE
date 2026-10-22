@@ -1,0 +1,54 @@
+/* Native Django administration and its widgets share TECHcare's dark palette. */
+:root, html[data-theme="light"], html[data-theme="dark"] {
+  color-scheme: dark;
+  --primary: #F77F00; --secondary: #0D1B2A; --accent: #FF9F1C;
+  --primary-fg: #0B1320;
+  --body-fg: #D6DCE5; --body-bg: #0B1320; --body-quiet-color: #9AA8B8; --body-medium-color: #D6DCE5; --body-loud-color: #FFFFFF;
+  --header-color: #FFFFFF; --header-branding-color: #FFFFFF; --header-bg: #0D1B2A; --header-link-color: #D6DCE5;
+  --breadcrumbs-fg: #9AA8B8; --breadcrumbs-link-fg: #FF9F1C; --breadcrumbs-bg: #1A2332;
+  --link-fg: #FF9F1C; --link-hover-color: #FFFFFF; --link-selected-fg: #F77F00;
+  --hairline-color: #243247; --border-color: #243247;
+  --error-fg: #FF9F1C; --message-success-bg: #1A2332; --message-warning-bg: #1A2332; --message-error-bg: #1A2332;
+  --darkened-bg: #0D1B2A; --selected-bg: #243247; --selected-row: #243247;
+  --button-fg: #0B1320; --button-bg: #F77F00; --button-hover-bg: #FF9F1C;
+  --default-button-bg: #F77F00; --default-button-hover-bg: #FF9F1C;
+  --close-button-bg: #243247; --close-button-hover-bg: #1A2332;
+  --delete-button-bg: #F77F00; --delete-button-hover-bg: #FF9F1C;
+  --object-tools-fg: #0B1320; --object-tools-bg: #F77F00; --object-tools-hover-bg: #FF9F1C;
+  --font-family-primary: "Segoe UI", Arial, sans-serif;
+}
+body, body.login { background: #0B1320; color: #D6DCE5; }
+::selection { background: #F77F00; color: #0B1320; }
+*:focus-visible { outline: 2px solid #FF9F1C; outline-offset: 3px; }
+#header { border-bottom: 1px solid #243247; }
+#site-name a { font-weight: 700; letter-spacing: -.6px; }
+.techcare-brand-accent { color: #F77F00; font-weight: 400; }
+#site-name small { color: #9AA8B8; font-size: 12px; font-weight: 400; margin-left: 12px; letter-spacing: 0; }
+.theme-toggle { display: none; }
+.module, #content-related, .submit-row, #toolbar, #changelist-filter, .inline-group { background: #1A2332; border: 1px solid #243247; border-radius: 12px; }
+.module h2, .module caption, .inline-group h2 { background: #0D1B2A; color: #FFFFFF; border-radius: 11px 11px 0 0; }
+.module caption a, .module caption a:link, .module caption a:visited { color: #FFFFFF; }
+#nav-sidebar, #nav-filter { background: #0D1B2A; color: #D6DCE5; }
+#nav-sidebar .module { border: 0; border-radius: 0; }
+#nav-sidebar .current-model { background: #243247; }
+#changelist .results, #changelist .paginator { background: #1A2332; }
+thead th, #changelist .actions, .row-form-errors { background: #0D1B2A; color: #9AA8B8; }
+tr:nth-child(odd), tr:nth-child(even) { background: #1A2332; }
+tbody tr:hover { background: #243247; }
+input, textarea, select, .vTextField, #toolbar form input[type="text"] { background: #0D1B2A; border: 1px solid #243247; color: #FFFFFF; border-radius: 8px; }
+input::placeholder, textarea::placeholder { color: #9AA8B8; }
+input:focus, textarea:focus, select:focus { border-color: #F77F00; }
+input[type="checkbox"], input[type="radio"] { accent-color: #F77F00; }
+.button, input[type="submit"], input[type="button"], .submit-row input, .object-tools a { border-radius: 8px; }
+.submit-row a.deletelink, a.deletelink:link, a.deletelink:visited { color: #0B1320; background-color: #F77F00; border-radius: 8px; }
+.help, p.help, form p.help, .help-tooltip, .quiet { color: #9AA8B8; }
+.errornote, .errorlist, ul.messagelist li { background-color: #1A2332; color: #FF9F1C; border-color: #F77F00; border-radius: 8px; }
+.selector .selector-available h2, .selector .selector-chosen h2, .selector .selector-filter, .selector select { background: #0D1B2A; color: #D6DCE5; }
+.calendarbox, .clockbox, .calendar, .timelist, .calendar caption, .calendar-shortcuts, .calendar-cancel, .calendarbox .datetimeshortcuts, .calendar td { background: #1A2332; color: #D6DCE5; }
+.calendar td a:hover, .calendar td.selected a, .calendar td.today a { background: #F77F00; color: #0B1320; }
+.select2-container--admin-autocomplete .select2-selection--single, .select2-container--admin-autocomplete .select2-selection--multiple, .select2-container--admin-autocomplete .select2-dropdown, .select2-search__field { background: #0D1B2A; border-color: #243247; color: #D6DCE5; }
+.select2-container--admin-autocomplete .select2-selection--single .select2-selection__rendered, .select2-results__option { color: #D6DCE5; }
+.select2-container--admin-autocomplete .select2-results__option--highlighted[aria-selected] { color: #0B1320; background: #F77F00; }
+.login #container { background: #1A2332; border: 1px solid #243247; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgb(0 0 0 / .25); }
+.login .form-row label { color: #D6DCE5; }
+@media (max-width: 600px) { #site-name small { display: none; } }

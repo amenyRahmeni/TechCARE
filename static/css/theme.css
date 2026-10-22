@@ -1,0 +1,235 @@
+/* TECHcare · one palette shared by the client, technician and backoffice. */
+:root {
+  color-scheme: dark;
+  --bg: #0B1320;
+  --surface: #0D1B2A;
+  --paper: #1A2332;
+  --surface-raised: #243247;
+  --line: #243247;
+  --ink: #FFFFFF;
+  --text: #D6DCE5;
+  --muted: #9AA8B8;
+  --accent: #F77F00;
+  --accent-hover: #FF9F1C;
+  --accent-soft: rgb(247 127 0 / .1);
+  --accent-line: rgb(247 127 0 / .32);
+  --overlay: rgb(11 19 32 / .8);
+  --radius: 16px;
+  --shadow: 0 8px 28px rgb(0 0 0 / .12);
+}
+html { background: var(--bg); scrollbar-color: var(--surface-raised) var(--surface); }
+body { background: var(--bg); color: var(--ink); }
+::selection { background: var(--accent); color: var(--bg); }
+:focus-visible { outline-color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent-hover); }
+input, select, textarea { accent-color: var(--accent); }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+.muted, .small, .page-description { color: var(--text); }
+.eyebrow, .title-dot, .required { color: var(--accent-hover); }
+.tiny-dot, .nav-active-dot, .footer-dot { background: var(--accent); }
+.button, .form-input, .filter-bar { border-radius: 10px; }
+.button-primary, .login-submit, .filter-submit {
+  background: var(--accent); color: var(--bg); border-color: var(--accent);
+  box-shadow: 0 4px 16px rgb(247 127 0 / .1);
+}
+.button-primary:hover, .login-submit:hover, .filter-submit:hover { background: var(--accent-hover); color: var(--bg); border-color: var(--accent-hover); }
+.button-secondary { color: var(--text); border-color: var(--line); background: var(--surface); box-shadow: none; }
+.button-secondary:hover { color: var(--ink); background: var(--surface-raised); border-color: var(--muted); }
+.button-danger { background: var(--accent-soft); color: var(--accent-hover); border-color: var(--accent-line); box-shadow: none; }
+.button-danger:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.button:disabled { cursor: not-allowed; opacity: .5; transform: none; box-shadow: none; }
+.icon-button { color: var(--muted); }
+.icon-button:hover { background: var(--surface-raised); color: var(--accent-hover); }
+.text-link, .text-button, .back-link:hover, .card-detail-link, .cancel-link { color: var(--accent-hover); }
+.back-link, .today, .page-footer, .account-name small { color: var(--muted); }
+.skip-link { background: var(--accent); color: var(--bg); }
+.sidebar { background: var(--surface); border-color: var(--line); }
+.topbar { background: rgb(13 27 42 / .96); border-color: var(--line); }
+.sidebar-overlay { background: var(--overlay); backdrop-filter: blur(4px); }
+.brand, .login-story .brand { color: var(--ink); }
+.brand-light, .brand-mark, .login-story .brand-mark { color: var(--accent); }
+.brand small, .login-story .brand small { color: var(--muted); }
+.brand-mark>span { background: var(--accent-hover); border-color: var(--surface); }
+.workspace-label { background: var(--paper); color: var(--text); border-color: var(--line); }
+.workspace-version, .nav-heading, .breadcrumb { color: var(--muted); }
+.breadcrumb strong { color: var(--text); }
+.nav-link { color: var(--muted); border: 1px solid transparent; border-radius: 10px; }
+.nav-link.is-active { color: var(--accent-hover); background: var(--accent-soft); border-color: var(--accent-line); }
+.nav-links a:hover, .admin-entry-link:hover { color: var(--ink); background: var(--surface-raised); }
+.nav-links a.is-active:hover { color: var(--accent-hover); background: var(--accent-soft); }
+.sidebar-tip { background: var(--paper); border-color: var(--line); }
+.sidebar-tip strong { color: var(--ink); }
+.sidebar-tip p { color: var(--muted); }
+.sidebar-tip a, .tip-icon { color: var(--accent-hover); }
+.avatar { background: var(--surface-raised); color: var(--accent-hover); border-color: var(--surface); outline-color: var(--line); }
+.module-tag, .step-pill, .mini-tag { background: var(--surface); border-color: var(--line); color: var(--text); }
+.panel, .pc-card, .pc-form, .recommendation-card, .recommendation-preview, .stat-card, .care-tip, .form-aside {
+  background: var(--paper); border-color: var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.stat-card:hover, .pc-card:hover { border-color: var(--accent-line); box-shadow: 0 12px 32px rgb(0 0 0 / .2); }
+.stat-card strong, .stat-card strong>span { color: var(--ink); }
+.stat-card strong>span, .stat-label, .device-type { color: var(--muted); }
+.stat-neutral, .stat-lilac, .insight-symbol, .mini-rec-icon, .history-marker, .document-row-icon {
+  color: var(--text); background: var(--surface-raised); border-color: var(--line);
+}
+.stat-green, .stat-amber, .empty-icon, .form-aside>.empty-icon, .mini-rec-icon.is-amber, .recommendation-banner .stat-icon {
+  background: var(--accent-soft); color: var(--accent-hover);
+}
+.green, .amber { background: var(--accent); }
+.badge-amber, .badge-green, .badge-lilac { color: var(--accent-hover); background: var(--accent-soft); }
+.badge-neutral, .count-pill, .soon-label { color: var(--text); background: var(--surface-raised); }
+.filter-bar, .appointments-panel .filter-bar, .documents-panel .filter-bar { background: var(--surface); border-color: var(--line); }
+.search-input input { color: var(--ink); }
+.search-input input::placeholder { color: var(--muted); }
+.filter-bar select, .sort-select { background: var(--surface); color: var(--text); }
+.filter-bar .filter-submit { color: var(--bg); background: var(--accent); }
+.filter-bar .filter-submit:hover { background: var(--accent-hover); }
+.results-line, .pc-model, .pc-specs, .pc-card-bottom>span, .history-meta, .rec-pc-name { color: var(--muted); }
+.pc-card-label>span:first-child, .pc-specs .icon { color: var(--text); }
+.add-pc-card { background: var(--surface); border-color: var(--line); border-radius: var(--radius); }
+.add-pc-card:hover { background: var(--accent-soft); border-color: var(--accent-line); }
+.add-pc-card>span { background: var(--paper); color: var(--accent); border-color: var(--accent-line); }
+.add-pc-card strong, .add-pc-card small { color: var(--accent-hover); }
+.add-pc-card p { color: var(--muted); }
+.mini-recommendation:hover, .rec-reason { background: var(--surface); }
+.recommendation-preview h2, .recommendation-card h3, .mini-recommendation strong, .care-tip h3, .form-aside h3 { color: var(--ink); }
+.recommendation-preview>.muted, .mini-recommendation div>span, .recommendation-card>p, .care-tip>p, .form-aside>p { color: var(--text); }
+.mini-recommendation small, .insight-link, .all-good, .rec-pc-name a { color: var(--accent-hover); }
+.recommendation-banner, .inline-empty, .info-callout { background: var(--surface); border-color: var(--line); color: var(--text); }
+.recommendation-banner strong, .inline-empty strong, .info-callout strong { color: var(--ink); }
+.recommendation-banner p { color: var(--text); }
+.care-orbit, .care-orbit:after { border-color: var(--accent-line); }
+.care-shield { background: linear-gradient(140deg, var(--surface-raised), var(--surface)); color: var(--accent); filter: drop-shadow(0 8px 12px rgb(0 0 0 / .2)); }
+.care-star, .care-tip .eyebrow { color: var(--accent-hover); }
+.form-field>label, .login-form-wrap .form-field label { color: var(--text); }
+.optional, .field-help, .form-actions>span { color: var(--muted); }
+.form-section-title>span { color: var(--accent-hover); background: var(--accent-soft); }
+.form-section-title p { color: var(--muted); }
+.form-input, .login-form-wrap .form-input { background: var(--surface); border-color: var(--line); color: var(--ink); }
+.form-input:hover, .login-form-wrap .form-input:hover { border-color: var(--muted); }
+.form-input:focus, .login-form-wrap .form-input:focus {
+  background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); outline: none;
+}
+.form-input[aria-invalid=true] { border-color: var(--accent); background: var(--surface); }
+.form-input:disabled { color: var(--muted); background: var(--bg); opacity: .75; cursor: not-allowed; }
+.form-input option, .filter-bar option { background: var(--surface); color: var(--ink); }
+.form-input[type=date]::-webkit-calendar-picker-indicator { opacity: .8; cursor: pointer; }
+input:-webkit-autofill { -webkit-text-fill-color: var(--ink); -webkit-box-shadow: 0 0 0 1000px var(--surface) inset; caret-color: var(--ink); }
+.form-actions { background: var(--surface); }
+.form-error-summary, .login-form-wrap .form-error-summary, .toast.error, .danger-callout, .availability-note.is-error {
+  color: var(--accent-hover); background: var(--surface); border-color: var(--accent-line);
+}
+.field-errors, .errorlist, .part-form-row .errorlist { color: var(--accent-hover); }
+.toast { color: var(--text); border-color: var(--accent-line); background: var(--paper); box-shadow: var(--shadow); }
+.toast>.icon { color: var(--accent); }
+.detail-identity { background: linear-gradient(145deg, var(--paper), var(--surface)); }
+.detail-identity-bottom { background: var(--surface); }
+.specs-list dd, .history-record-heading h3, .empty-state h3 { color: var(--ink); }
+.specs-list dt, .history-record-heading time, .empty-state p { color: var(--muted); }
+.history-content>p, .notes-panel p, .app-dialog p, .confirmation-panel>p:not(.eyebrow) { color: var(--text); }
+.history-meta a, .completed-label { color: var(--accent-hover); }
+.filter-tabs a { color: var(--muted); }
+.filter-tabs a:hover { background: var(--surface-raised); color: var(--ink); }
+.filter-tabs a.is-active { background: var(--accent-soft); color: var(--accent-hover); border-color: var(--accent-line); }
+.filter-tabs a span { background: var(--surface-raised); color: var(--text); }
+.danger-icon { color: var(--accent-hover); background: var(--accent-soft); }
+.danger-button:hover { color: var(--accent-hover); background: var(--accent-soft); }
+.app-dialog { color: var(--ink); background: var(--paper); border-color: var(--line); box-shadow: 0 28px 100px rgb(0 0 0 / .5); }
+.app-dialog::backdrop { background: var(--overlay); }
+
+/* Booking, intervention steps and documents. */
+.appointment-date, .mini-date { color: var(--accent-hover); background: var(--surface); border-color: var(--line); }
+.appointment-row-content .eyebrow, .appointment-meta { color: var(--muted); }
+.appointment-status { background: var(--surface-raised); color: var(--text); border: 1px solid var(--line); }
+.status-pending, .status-repair { background: var(--accent-soft); color: var(--accent-hover); border-color: var(--accent-line); }
+.status-confirmed, .status-diagnosis { color: var(--ink); background: var(--surface-raised); border-color: var(--muted); }
+.status-completed { background: var(--surface); color: var(--accent-hover); border-color: var(--accent-line); }
+.status-cancelled { color: var(--muted); background: var(--surface); }
+.availability-note { color: var(--text); background: var(--surface); border-color: var(--line); }
+.technician-preview>h3, .technician-mini strong, .identity-item strong { color: var(--ink); }
+.technician-mini p, .identity-item small, .identity-item p { color: var(--muted); }
+.workflow-steps li { color: var(--muted); }
+.workflow-steps li:before { background: var(--line); }
+.workflow-steps li>span { background: var(--surface); border-color: var(--line); }
+.workflow-steps .step-done>span { color: var(--accent-hover); background: var(--accent-soft); border-color: var(--accent-line); }
+.workflow-steps .step-current { color: var(--accent-hover); }
+.workflow-steps .step-current>span { color: var(--bg); background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.workflow-steps .step-current:before, .workflow-steps .step-done:before { background: var(--accent-line); }
+.status-form label, .appointment-request>p, .document-summary>p, .completed-report>p { color: var(--text); }
+.document-totals, .document-stat>div>span { color: var(--muted); }
+.document-totals .grand-total, .cost-preview>strong, .document-row-actions>strong { color: var(--accent-hover); }
+.cost-preview { background: var(--surface); color: var(--text); border-color: var(--accent-line); }
+.cost-table { color: var(--text); }
+.cost-table th { background: var(--surface); color: var(--muted); }
+.completed-report>h3, .document-stat strong, .document-row-content h3 { color: var(--ink); }
+.document-row-content>p { color: var(--text); }
+.document-stat strong>small, .editor-note { color: var(--muted); }
+
+/* The administration uses the same tokens, including charts and tables. */
+.admin-workspace { color: var(--ink); }
+.admin-access, .admin-sidebar-note a { color: var(--accent-hover); }
+.admin-panel .section-heading h2, .completion-ring strong, .upcoming-description>strong,
+.team-summary strong, .admin-empty h3, .admin-empty h2, .audit-row strong, .admin-summary-strip strong,
+.admin-table td strong, .admin-form-help>h2, .technician-card>h2, .technician-workload strong,
+.admin-rule-card>h2, .admin-specs dd, .admin-recommendation h3 { color: var(--ink); }
+.admin-stats .stat-label, .admin-sidebar-note, .admin-caption, .chart-value, .chart-column>small,
+.chart-footnote, .completion-ring span, .activity-numbers>div, .upcoming-description>small,
+.team-summary p, .admin-empty p, .audit-row small, .audit-row>span:last-child, .audit-row>time,
+.admin-muted, .admin-summary-strip, .admin-table td small, .technician-card>small,
+.technician-workload span, .admin-specs dt { color: var(--muted); }
+.admin-tag, .tag-purple { color: var(--text); background: var(--surface); border-color: var(--line); }
+.chart-track { border-color: var(--line); background: repeating-linear-gradient(to top, transparent 0, transparent 43px, var(--line) 43px, var(--line) 44px); }
+.chart-bar { background: var(--surface-raised); }
+.chart-bar.is-current { background: linear-gradient(to top, var(--accent), var(--accent-hover)); }
+.chart-column>strong { color: var(--text); }
+.completion-ring { background: conic-gradient(var(--accent) calc(var(--completion) * 1%), var(--surface-raised) 0); }
+.completion-ring>div { background: var(--paper); }
+.activity-numbers strong { color: var(--ink); }
+.legend-dot.completed { background: var(--accent); }
+.legend-dot.pending { background: var(--accent-hover); }
+.legend-dot.neutral { background: var(--muted); }
+.admin-attention { background: var(--surface); border-color: var(--accent-line); }
+.admin-attention .stat-icon { background: var(--accent-soft); color: var(--accent-hover); }
+.admin-attention .eyebrow, .admin-attention h2, .admin-attention .text-link { color: var(--accent-hover); }
+.admin-attention p:not(.eyebrow) { color: var(--text); }
+.audit-row p, .admin-form-help>p, .technician-card>p, .admin-rule-card>p, .admin-pc-notes, .admin-recommendation p { color: var(--text); }
+.admin-table th { background: var(--surface); color: var(--muted); }
+.admin-table td { color: var(--text); }
+.admin-table-wrap, .cost-table-wrapper { position: relative; max-width: 100%; overscroll-behavior-inline: contain; }
+.admin-workspace .admin-table tr:hover td { background: var(--surface); }
+.state-active { color: var(--accent-hover); }
+.state-inactive { color: var(--muted); }
+.table-actions .icon-button { background: var(--surface); color: var(--text); border-color: var(--line); }
+.table-actions .icon-button:hover { color: var(--accent-hover); border-color: var(--accent-line); }
+.admin-rule-card dl { color: var(--muted); background: var(--surface); }
+.admin-rule-card dd { color: var(--text); }
+
+/* Login and CSS device illustrations stay inside the same visual identity. */
+.login-page { background: var(--bg); }
+.login-story { background: linear-gradient(145deg, var(--surface), var(--paper)); color: var(--text); }
+.login-story:before, .login-story:after { border-color: var(--accent-line); }
+.login-story .eyebrow, .login-story h1>span, .login-features .icon { color: var(--accent-hover); }
+.login-story h1, .login-form-wrap h2 { color: var(--ink); }
+.login-story p, .login-features>span, .login-form-wrap>.muted { color: var(--text); }
+.login-form-side { background: var(--bg); }
+.login-story-footer, .login-help, .login-copyright { color: var(--muted); }
+.login-form-wrap>.eyebrow, .password-toggle { color: var(--accent-hover); }
+.pc-visual, .pc-visual[data-brand] { --wallpaper: #0D1B2A; --wallpaper-light: #243247; --device: #243247; }
+.device-screen { box-shadow: inset 0 0 0 1px rgb(214 220 229 / .12), 6px 12px 20px rgb(0 0 0 / .25); }
+.screen-wallpaper { background: radial-gradient(ellipse at 80% 80%, rgb(247 127 0 / .3), transparent 65%), linear-gradient(135deg, var(--surface-raised), var(--surface)); }
+.wallpaper-orbit { background: linear-gradient(115deg, rgb(247 127 0 / .25), transparent 80%); border-color: var(--accent-line); box-shadow: none; }
+.orbit-two { border-color: rgb(247 127 0 / .15); background: linear-gradient(135deg, rgb(255 159 28 / .16), transparent); box-shadow: none; }
+.orbit-three { background: rgb(214 220 229 / .04); }
+.screen-monogram { color: var(--text); }
+.screen-dock { background: rgb(214 220 229 / .12); }
+.screen-dock i { background: var(--text); }
+.screen-dock i:nth-child(2n) { background: var(--accent); }
+.device-camera { background: var(--bg); }
+.device-brand { color: var(--muted); }
+.device-base { background: linear-gradient(var(--surface-raised) 10%, var(--muted) 65%, var(--surface-raised)); box-shadow: 0 2px 1px rgb(0 0 0 / .2); }
+.device-base>span { background: var(--surface); }
+.device-shadow { background: rgb(0 0 0 / .4); }
+.is-desktop .desktop-stand { background: linear-gradient(90deg, var(--surface-raised), var(--muted), var(--surface-raised)); }
+@media (prefers-reduced-motion: no-preference) {
+  .pc-card, .stat-card, .panel, .nav-link, .form-input { transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease; }
+}
