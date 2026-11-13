@@ -109,7 +109,7 @@ if (interventionForm) {
   const limitNote = interventionForm.querySelector("[data-part-limit]");
   const calculate = () => {
     const labour = Number(interventionForm.querySelector("[data-labour-cost]").value) || 0;
-    let total = labour;
+    let total = labour + (Number(interventionForm.dataset.fixedCost) || 0);
     list.querySelectorAll("[data-part-row]:not([hidden])").forEach(row => {
       const quantity = Number(row.querySelector("[data-part-quantity]").value) || 0;
       const price = Number(row.querySelector("[data-part-price]").value) || 0;

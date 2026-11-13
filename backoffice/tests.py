@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth import get_user_model
+from django.core.exceptions import PermissionDenied
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -32,7 +33,7 @@ class BackofficeTests(TestCase):
         return data
 
     def booking(self):
-        return book_appointment(self.admin, {"pc": self.pc, "technician": self.tech, "starts_at": future_start(), "category": "preventive", "reason": "Entretien du PC", "description": "Nettoyer le ventilateur."})
+        return book_appointment(self.customer, {"pc": self.pc, "technician": self.tech, "starts_at": future_start(), "category": "preventive", "reason": "Entretien du PC", "description": "Nettoyer le ventilateur."})
 
     def pc_payload(self, **changes):
         data = {"owner": self.customer.pk, "name": "PC de bureau", "brand": "Dell", "model": "Optiplex", "device_type": "desktop", "serial_number": "BO-001", "operating_system": "Ubuntu", "ram_gb": 16, "storage_gb": 512, "storage_type": "SSD"}
@@ -214,19 +215,57 @@ class BackofficeTests(TestCase):
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertTrue(b"".join(response.streaming_content).startswith(b"%PDF"))
 
-    def test_booking_creation_and_cancel_remain_in_admin_navigation(self):
-        starts = future_start()
-        response = self.client.post(reverse("backoffice:create"), {"pc": self.pc.pk, "technician": self.tech.pk, "date": starts.date().isoformat(), "time": "10:00", "category": "preventive", "reason": "Réservation admin", "description": ""})
-        appointment = Appointment.objects.get()
+    def test_booking_modification_and_cancel_remain_in_admin_navigation(self):
+        appointment = self.booking()
+        starts = future_start(hour=11)
+        response = self.client.post(reverse("backoffice:update", args=[appointment.pk]), {"pc": self.pc.pk, "technician": self.tech.pk, "date": starts.date().isoformat(), "time": "11:00", "category": "preventive", "reason": "Suivi modifié par l’admin", "description": ""})
         detail = reverse("backoffice:detail", args=[appointment.pk])
         self.assertRedirects(response, detail)
+        appointment.refresh_from_db()
+        self.assertEqual(appointment.starts_at, starts)
+        self.assertEqual(appointment.client_id, self.customer.pk)
+        self.assertEqual(Appointment.objects.count(), 1)
         self.assertRedirects(self.client.post(reverse("backoffice:cancel", args=[appointment.pk])), detail)
         self.assertFalse(BookingSlot.objects.exists())
+
+    def test_admin_cannot_create_appointments_through_either_workspace(self):
+        starts = future_start()
+        for actor in (self.admin, self.staff):
+            self.client.force_login(actor)
+            owned_pc = make_pc(actor, "PC du compte administrateur")
+            for pc in (self.pc, owned_pc):
+                payload = {"pc": pc.pk, "technician": self.tech.pk, "date": starts.date().isoformat(), "time": "10:00", "category": "preventive", "reason": "Création interdite", "description": ""}
+                for route in ("backoffice:create", "appointments:create"):
+                    self.assertEqual(self.client.get(reverse(route)).status_code, 403)
+                    self.assertEqual(self.client.post(reverse(route), payload).status_code, 403)
+        self.assertFalse(Appointment.objects.exists())
+        self.assertFalse(BookingSlot.objects.exists())
+
+    def test_admin_booking_service_rejects_new_appointments(self):
+        for actor in (self.admin, self.staff):
+            with self.assertRaises(PermissionDenied):
+                book_appointment(actor, {"pc": self.pc, "technician": self.tech, "starts_at": future_start(), "category": "preventive", "reason": "Création interdite", "description": ""})
+        self.assertFalse(Appointment.objects.exists())
+
+    def test_admin_has_no_booking_actions_on_dashboard_pc_recommendations_or_list(self):
+        own_pc = make_pc(self.admin, "PC personnel du compte admin")
+        own_pc.ram_gb = 4
+        own_pc.save()
+        paths = [reverse("backoffice:dashboard"), reverse("backoffice:list"), reverse("appointments:list"),
+                 reverse("backoffice:pc_detail", args=[self.pc.pk]), own_pc.get_absolute_url(), reverse("maintenance:recommendations")]
+        for path in paths:
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200, path)
+            self.assertNotContains(response, reverse("backoffice:create"))
+            self.assertNotContains(response, reverse("appointments:create"))
+            self.assertNotContains(response, "Prendre mon premier rendez-vous")
+        self.booking()
+        self.assertNotContains(self.client.get(reverse("backoffice:list")), reverse("backoffice:create"))
 
     def test_admin_pages_render_with_existing_data_and_escape_user_input(self):
         self.customer.first_name = '<script>alert("test")</script>'
         self.customer.save()
-        for name in ("dashboard", "accounts", "account_create", "technicians", "pcs", "pc_create", "rules", "rule_create", "list", "create", "documents"):
+        for name in ("dashboard", "accounts", "account_create", "technicians", "pcs", "pc_create", "rules", "rule_create", "list", "documents"):
             response = self.client.get(reverse(f"backoffice:{name}"))
             self.assertEqual(response.status_code, 200, name)
             self.assertTemplateUsed(response, "backoffice/base.html")

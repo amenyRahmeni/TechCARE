@@ -2,6 +2,6 @@
 {% load static %}
 {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:'TECHcare' }}{% endblock %}
 {% block dark-mode-vars %}<meta name="theme-color" content="#0B1320">{% endblock %}
-{% block extrahead %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin-theme.css' %}">{% endblock %}
+{% block extrahead %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin-theme.css' %}">{% include 'components/motion_assets.html' %}{% endblock %}
 {% block branding %}<div id="site-name"><a href="{% url 'admin:index' %}">TECH<span class="techcare-brand-accent">care</span> <small>Administration</small></a></div>{% endblock %}
 {% block nav-global %}{% endblock %}

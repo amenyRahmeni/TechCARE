@@ -9,6 +9,8 @@ from django.views.decorators.http import require_POST
 from .forms import PCForm
 from .models import MaintenanceRecord, PC, Recommendation
 from .services import refresh_all_recommendations
+from .permissions import viewable_pcs
+from appointments.permissions import client_features_required, is_technician_workspace
 
 
 def owned_pcs(user):
@@ -30,6 +32,8 @@ def decorate_pcs(queryset):
 
 @login_required
 def pc_list(request):
+    if is_technician_workspace(request.user):
+        return redirect("appointments:list")
     all_pcs = decorate_pcs(owned_pcs(request.user))
     recs = active_recommendations(request.user)
     total = all_pcs.count()
@@ -60,11 +64,13 @@ def pc_list(request):
 
 @login_required
 def pc_detail(request, pk):
-    pc = get_object_or_404(decorate_pcs(owned_pcs(request.user)), pk=pk)
-    return render(request, "maintenance/pc_detail.html", {"active_page": "pcs", "pc": pc, "recommendations": active_recommendations(request.user).filter(pc=pc)})
+    from predictions.services import context_for_pc
+    technician = is_technician_workspace(request.user)
+    pc = get_object_or_404(decorate_pcs(viewable_pcs(request.user)), pk=pk)
+    return render(request, "maintenance/assigned_pc_detail.html" if technician else "maintenance/pc_detail.html", {"active_page": "assigned_pc" if technician else "pcs", "pc": pc, "readonly_pc": technician, "recommendations": [] if technician else active_recommendations(request.user).filter(pc=pc), **context_for_pc(pc)})
 
 
-@login_required
+@client_features_required
 def pc_form(request, pk=None):
     pc = get_object_or_404(owned_pcs(request.user), pk=pk) if pk else None
     form = PCForm(request.POST if request.method == "POST" else None, instance=pc, owner=request.user)
@@ -75,7 +81,7 @@ def pc_form(request, pk=None):
     return render(request, "maintenance/pc_form.html", {"active_page": "pcs", "form": form, "pc": pc})
 
 
-@login_required
+@client_features_required
 def pc_delete(request, pk):
     pc = get_object_or_404(owned_pcs(request.user), pk=pk)
     if request.method == "POST":
@@ -90,7 +96,7 @@ def pc_delete(request, pk):
     return render(request, "maintenance/pc_confirm_delete.html", {"active_page": "pcs", "pc": pc})
 
 
-@login_required
+@client_features_required
 def history(request):
     records = MaintenanceRecord.objects.filter(pc__owner=request.user).select_related("pc")
     pc_id = request.GET.get("pc", "")
@@ -102,7 +108,7 @@ def history(request):
     })
 
 
-@login_required
+@client_features_required
 def recommendations(request):
     priority = request.GET.get("priority", "")
     recs = active_recommendations(request.user)
@@ -114,7 +120,7 @@ def recommendations(request):
     })
 
 
-@login_required
+@client_features_required
 @require_POST
 def analyze(request):
     refresh_all_recommendations(owned_pcs(request.user))

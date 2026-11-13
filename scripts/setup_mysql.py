@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import re
 
-import MySQLdb
+import pymysql
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,10 +41,10 @@ def connect(config, *, administrator_password=None):
         "charset": "utf8mb4", "connect_timeout": 10,
     }
     if administrator_password is not None:
-        options.update(user="root", passwd=administrator_password)
+        options.update(user="root", password=administrator_password)
     else:
-        options.update(user=config["user"], passwd=config["password"], db=config["database"])
-    return MySQLdb.connect(**options)
+        options.update(user=config["user"], password=config["password"], database=config["database"])
+    return pymysql.connect(**options)
 
 
 def configure_mysql(config, administrator_password):
@@ -91,7 +91,7 @@ def main():
         configure_mysql(config, administrator_password)
     except ValueError as error:
         raise SystemExit(str(error)) from None
-    except MySQLdb.Error as error:
+    except pymysql.Error as error:
         code = error.args[0] if error.args else "inconnu"
         if code == 1045:
             message = "Connexion refusée. Vérifiez le mot de passe root de l’installation" if not args.check else "Le compte du projet ne correspond pas encore aux paramètres .env. Lancez cet assistant sans --check"

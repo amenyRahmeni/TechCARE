@@ -69,9 +69,9 @@ def _build(invoice, kind):
     story = [p("TECHcare · PC & MAINTENANCE", "SmallPC"), Spacer(1, 6 * mm), p(title, "TitlePC"), p(invoice.number, "SmallPC"), Spacer(1, 5 * mm)]
     summary = Table([
         [p("CLIENT", "SmallPC"), p("INTERVENTION", "SmallPC")],
-        [p(data["client"]), p(f"Rendez-vous #{data['appointment_id']} · {data['category']}")],
+        [p(data["client"]), p(f"{data.get('reference') or 'Rendez-vous #' + str(data.get('appointment_id', ''))} · {data['category']}")],
         [p(data.get("client_email"), "SmallPC"), p(f"Technicien : {data['technician']}", "SmallPC")],
-        [p(f"Clôture : {formatted_date(data['completed_at'])}", "SmallPC"), p(f"Créneau : {formatted_date(data['scheduled_at'])}", "SmallPC")],
+        [p(f"Clôture : {formatted_date(data['completed_at'])}", "SmallPC"), p(f"{'Demande créée' if data.get('repair_id') else 'Créneau'} : {formatted_date(data['scheduled_at'])}", "SmallPC")],
     ], colWidths=[width / 2] * 2, hAlign="LEFT")
     summary.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), PALE), ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 13), ("RIGHTPADDING", (0, 0), (-1, -1), 13), ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
     story.extend([summary, heading("Ordinateur pris en charge")])

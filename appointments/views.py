@@ -12,15 +12,18 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from maintenance.models import PC
+from accounts.forms import LoginForm
 from .forms import AppointmentForm, InterventionForm, PartLineFormSet
 from .models import Appointment, Intervention, Technician
 from .pdf import generate_pdf
-from .permissions import can_manage_intervention, is_technician, visible_appointments, visible_invoices
+from .permissions import can_create_appointments, can_manage_intervention, can_use_client_features, client_features_required, is_technician, is_technician_workspace, visible_appointments, visible_invoices
 from .scheduling import day_slots
 from .services import TRANSITIONS, book_appointment, cancel_appointment, save_intervention, update_status
 
 
 class WorkspaceLoginView(LoginView):
+    authentication_form = LoginForm
+
     def get_default_redirect_url(self):
         if self.request.user.is_staff:
             return reverse("backoffice:dashboard")
@@ -42,6 +45,8 @@ def _followup(request, appointment):
 def appointment_list(request):
     appointments = _appointments(request.user)
     scope = request.GET.get("scope", "assigned" if is_technician(request.user) and not request.user.is_staff else "all")
+    if is_technician_workspace(request.user):
+        scope = "assigned"
     if scope == "assigned":
         appointments = appointments.filter(technician__user=request.user)
     elif scope == "client":
@@ -60,6 +65,8 @@ def appointment_list(request):
 
 @login_required
 def appointment_form(request, pk=None):
+    if pk is None and not can_create_appointments(request.user):
+        raise PermissionDenied("La prise de rendez-vous appartient à l’espace client.")
     appointment = get_object_or_404(_appointments(request.user), pk=pk) if pk else None
     if appointment and not appointment.can_modify:
         messages.error(request, "Ce rendez-vous ne peut plus être modifié à cette étape.")
@@ -76,26 +83,33 @@ def appointment_form(request, pk=None):
             form.add_error(None, error)
         else:
             messages.success(request, "Rendez-vous modifié. Le nouveau créneau est en attente de confirmation." if pk else "Votre rendez-vous a été réservé. Le technicien peut maintenant le confirmer.")
-            if not request.user.is_staff and saved.client_id != request.user.pk and saved.technician.user_id != request.user.pk:
+            if not visible_appointments(request.user).filter(pk=saved.pk).exists():
                 return redirect("appointments:list")
             return _followup(request, saved)
     return render(request, "appointments/form.html", {"active_page": "appointments", "form": form, "appointment": appointment, "technicians": form.fields["technician"].queryset})
 
 
 def _detail_context(request, appointment, form=None, formset=None):
+    from inventory.forms import UseForm
     intervention = getattr(appointment, "intervention", None)
     manager = can_manage_intervention(request.user, appointment)
     invoice = getattr(intervention, "invoice", None) if intervention else None
     workflow = [("pending", "En attente"), ("confirmed", "Confirmé"), ("diagnosis", "Diagnostic"), ("repair", "Réparation"), ("completed", "Terminé")]
     current = next((i for i, (value, _) in enumerate(workflow) if value == appointment.status), -1)
+    thread_paginator = Paginator(appointment.messages.select_related("sender"), 30)
+    thread_page = thread_paginator.get_page(request.GET.get("messages_page", thread_paginator.num_pages))
     return {
         "active_page": "appointments", "appointment": appointment, "intervention": intervention,
-        "can_manage": manager, "can_download": request.user.is_staff or appointment.client_id == request.user.pk,
+        "thread": thread_page, "thread_page": thread_page,
+        "can_manage": manager, "can_download": can_use_client_features(request.user) and (request.user.is_staff or appointment.client_id == request.user.pk),
         "status_choices": [(value, Appointment.Status(value).label) for value in TRANSITIONS.get(appointment.status, ())],
         "can_complete": Appointment.Status.COMPLETED in TRANSITIONS.get(appointment.status, ()),
         "intervention_form": form if form is not None else InterventionForm(instance=intervention),
         "parts_formset": formset if formset is not None else PartLineFormSet(instance=intervention, prefix="parts"),
         "invoice": invoice,
+        "use_form": UseForm(actor=request.user, fixed_target=f"appointment:{appointment.pk}"),
+        "usages": appointment.component_usages.select_related("component", "used_by").all(),
+        "stock_total": sum((line.total for line in intervention.parts.filter(stock_usage__isnull=False)), 0) if intervention else 0,
         "workflow_steps": [{"label": label, "state": "current" if i == current else "done" if i < current else "future"} for i, (_, label) in enumerate(workflow)],
     }
 
@@ -104,6 +118,22 @@ def _detail_context(request, appointment, form=None, formset=None):
 def detail(request, pk):
     appointment = get_object_or_404(_appointments(request.user), pk=pk)
     return render(request, "appointments/detail.html", _detail_context(request, appointment))
+
+
+@login_required
+@require_POST
+def message(request, pk):
+    from .messaging import send_message
+    appointment = get_object_or_404(_appointments(request.user), pk=pk)
+    try:
+        send_message(request.user, pk, request.POST.get("body", ""))
+    except ValidationError as error:
+        messages.error(request, " ".join(error.messages))
+    else:
+        messages.success(request, "Votre message a été envoyé.")
+    response = _followup(request, appointment)
+    response["Location"] += "#discussion"
+    return response
 
 
 @login_required
@@ -156,7 +186,7 @@ def intervention_update(request, pk):
         for part_form in formset.forms:
             data = part_form.cleaned_data
             part_id = data.get("id")
-            if part_id and part_id.intervention_id != intervention.pk:
+            if part_id and (part_id.intervention_id != intervention.pk or part_id.stock_usage_id):
                 part_form.add_error(None, "Cette ligne n’appartient pas à l’intervention.")
                 valid = False
             if data and not data.get("DELETE") and data.get("name"):
@@ -175,6 +205,8 @@ def intervention_update(request, pk):
 
 @login_required
 def availability(request):
+    if is_technician_workspace(request.user) and not request.GET.get("appointment"):
+        raise PermissionDenied("Choisissez un rendez-vous qui vous est assigné.")
     technician_id = request.GET.get("technician", "")
     if not technician_id.isdigit():
         return JsonResponse({"error": "Choisissez un technicien."}, status=400)
@@ -201,9 +233,9 @@ def availability(request):
     return JsonResponse({"slots": day_slots(technician, chosen_date, pc, appointment), "note": "Horaires de Tunis · lundi au samedi, de 09:00 à 18:00."})
 
 
-@login_required
+@client_features_required
 def documents(request):
-    invoices = visible_invoices(request.user).select_related("intervention__appointment__pc")
+    invoices = visible_invoices(request.user).select_related("intervention__appointment__pc", "repair__pc")
     q = request.GET.get("q", "").strip()[:100]
     counts = {"total": invoices.count(), "amount": invoices.aggregate(total=Sum("total_amount"))["total"] or 0}
     if q:
@@ -211,7 +243,7 @@ def documents(request):
     return render(request, "appointments/documents.html", {"active_page": "documents", "page_obj": Paginator(invoices, 10).get_page(request.GET.get("page")), "q": q, "counts": counts})
 
 
-@login_required
+@client_features_required
 def download_pdf(request, pk, kind):
     invoice = get_object_or_404(visible_invoices(request.user), pk=pk)
     if kind not in ("report", "invoice"):

@@ -5,8 +5,9 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from maintenance.models import MaintenanceRecord, PC
+from notifications.services import date_label, notify_booking, notify_status
 from .models import Appointment, BookingSlot, Intervention, Invoice, PartLine, Technician
-from .permissions import can_manage_intervention, visible_appointments
+from .permissions import can_create_appointments, can_manage_intervention, is_technician_workspace, visible_appointments
 from .scheduling import validate_start
 
 TRANSITIONS = {
@@ -34,16 +35,21 @@ def _reserve(appointment):
 
 
 def book_appointment(actor, data, appointment_id=None):
+    if not appointment_id and not can_create_appointments(actor):
+        raise PermissionDenied("La réservation d’un nouveau rendez-vous appartient à l’espace client.")
     try:
         with transaction.atomic():
+            previous = None
             if appointment_id:
                 appointment = visible_appointments(actor).select_for_update(of=("self",)).get(pk=appointment_id)
                 if not appointment.can_modify:
                     raise ValidationError("La modification est impossible pendant la réparation ou après la clôture.")
                 if data["pc"].owner_id != appointment.client_id:
                     raise ValidationError("L’ordinateur doit appartenir au client du rendez-vous.")
-                if not actor.is_staff and actor.pk != appointment.client_id and data["pc"].pk != appointment.pc_id:
+                if is_technician_workspace(actor) and data["pc"].pk != appointment.pc_id:
                     raise PermissionDenied
+                previous = {"technician_user_id": appointment.technician.user_id, "label": date_label(appointment)}
+                changed = any(getattr(appointment, key) != data[key] for key in ("pc", "technician", "starts_at", "category", "reason", "description")) or appointment.status != Appointment.Status.PENDING
             else:
                 if not actor.is_staff and data["pc"].owner_id != actor.pk:
                     raise PermissionDenied
@@ -67,6 +73,8 @@ def book_appointment(actor, data, appointment_id=None):
             appointment.save()
             _reserve(appointment)
             Intervention.objects.get_or_create(appointment=appointment)
+            if previous is None or changed:
+                notify_booking(appointment, previous)
             return appointment
     except IntegrityError as error:
         if error.args and error.args[0] == 1062:
@@ -79,9 +87,7 @@ def cancel_appointment(actor, appointment_id):
     appointment = visible_appointments(actor).select_for_update(of=("self",)).get(pk=appointment_id)
     if not appointment.can_modify:
         raise ValidationError("L’annulation est impossible pendant la réparation ou après la clôture.")
-    appointment.status = Appointment.Status.CANCELLED
-    appointment.save(update_fields=["status", "updated_at"])
-    BookingSlot.objects.filter(appointment=appointment).delete()
+    _transition(appointment, Appointment.Status.CANCELLED, actor)
     return appointment
 
 
@@ -120,7 +126,7 @@ def _close_intervention(appointment):
     Invoice.objects.create(intervention=intervention, snapshot=snapshot, total_amount=total, issued_at=completed)
 
 
-def _transition(appointment, status):
+def _transition(appointment, status, actor=None):
     if status == appointment.status:
         return
     if status not in TRANSITIONS.get(appointment.status, ()):
@@ -128,9 +134,12 @@ def _transition(appointment, status):
     if status == Appointment.Status.COMPLETED:
         _close_intervention(appointment)
     if status == Appointment.Status.CANCELLED:
+        from inventory.services import return_target_components
+        return_target_components(actor or appointment.client, appointment=appointment, reason="Annulation du rendez-vous")
         BookingSlot.objects.filter(appointment=appointment).delete()
     appointment.status = status
     appointment.save(update_fields=["status", "updated_at"])
+    notify_status(appointment)
 
 
 @transaction.atomic
@@ -138,7 +147,7 @@ def update_status(actor, appointment_id, status):
     appointment = visible_appointments(actor).select_for_update(of=("self",)).get(pk=appointment_id)
     if not can_manage_intervention(actor, appointment):
         raise PermissionDenied
-    _transition(appointment, status)
+    _transition(appointment, status, actor)
     return appointment
 
 
@@ -156,11 +165,11 @@ def save_intervention(actor, appointment_id, data, parts, complete=False):
     intervention.save()
     if len(parts) > 20:
         raise ValidationError("Vous pouvez renseigner au maximum 20 lignes de pièces.")
-    intervention.parts.all().delete()
+    intervention.parts.filter(stock_usage__isnull=True).delete()
     for line in parts:
         part = PartLine(intervention=intervention, **line)
         part.full_clean()
         part.save()
     if complete:
-        _transition(appointment, Appointment.Status.COMPLETED)
+        _transition(appointment, Appointment.Status.COMPLETED, actor)
     return appointment

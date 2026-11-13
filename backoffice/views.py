@@ -6,10 +6,10 @@ from django.contrib import messages
 from django.contrib.admin.models import ADDITION, CHANGE, DELETION, LogEntry
 from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, F, Q, Sum
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -17,6 +17,7 @@ from django.views.decorators.cache import never_cache
 
 from appointments.models import Appointment, Invoice, Technician
 from maintenance.models import PC, MaintenanceRule, Recommendation
+from inventory.models import SparePart
 from .forms import AccountForm, AdminPCForm, RuleForm
 
 User = get_user_model()
@@ -54,6 +55,9 @@ def role_queryset(role):
 
 @staff_required
 def dashboard(request):
+    from feedback.models import Feedback
+    from support.models import FAQItem
+    from django.db.models import Avg
     today = timezone.localdate()
     first = today.replace(day=1)
     months = [first]
@@ -76,9 +80,14 @@ def dashboard(request):
         "pending": statuses.get("pending", 0), "completed": statuses.get("completed", 0), "appointments": total,
         "monthly_revenue": revenue.get(first, Decimal(0)), "technicians": Technician.objects.filter(is_available=True, user__is_active=True).count(),
         "alerts": Recommendation.objects.filter(is_active=True, rule__is_active=True, rule__priority="high").values("pc").distinct().count(),
+        "components_active": SparePart.objects.filter(is_active=True).count(),
+        "components_units": SparePart.objects.filter(is_active=True).aggregate(total=Sum("stock"))["total"] or 0,
+        "components_low": SparePart.objects.filter(is_active=True, stock__lte=F("low_stock_threshold")).count(),
     }
     return render(request, "backoffice/dashboard.html", {
         "active_page": "dashboard", "counts": counts, "chart": chart,
+        "quality": Feedback.objects.aggregate(average=Avg("rating"), count=Count("pk")),
+        "faq_count": FAQItem.objects.filter(is_active=True).count(),
         "completion": round(counts["completed"] / total * 100) if total else 0,
         "upcoming": Appointment.objects.filter(starts_at__gte=timezone.now()).exclude(status__in=["completed", "cancelled"]).select_related("pc", "client", "technician__user").order_by("starts_at")[:5],
         "recent_logs": LogEntry.objects.select_related("user", "content_type").order_by("-action_time")[:5],
@@ -119,12 +128,14 @@ def account_form(request, pk=None):
             try:
                 with transaction.atomic():
                     account.save()
+                    from accounts.services import claim_email
+                    claim_email(account)
                     if form.cleaned_data["role"] == "technician":
-                        Technician.objects.update_or_create(user=account, defaults={"specialty": form.cleaned_data["specialty"], "is_available": form.cleaned_data["is_available"]})
+                        Technician.objects.update_or_create(user=account, defaults={"specialty": form.cleaned_data["specialty"], "is_available": form.cleaned_data["is_available"], "skills": form.cleaned_data["skills"]})
                     else:
                         Technician.objects.filter(user=account).delete()
                     audit(request.user, account, CHANGE if pk else ADDITION, "Compte modifié depuis le backoffice." if pk else "Compte créé depuis le backoffice.")
-            except (IntegrityError, ProtectedError):
+            except (IntegrityError, ProtectedError, ValidationError):
                 form.add_error(None, "Le compte a changé pendant l’enregistrement ou cet identifiant existe déjà. Rechargez la page et réessayez.")
             else:
                 if account.pk == request.user.pk:
@@ -190,8 +201,9 @@ def pc_form(request, pk=None):
 
 @staff_required
 def pc_detail(request, pk):
+    from predictions.services import context_for_pc
     pc = get_object_or_404(PC.objects.select_related("owner"), pk=pk)
-    return render(request, "backoffice/pc_detail.html", {"active_page": "pcs", "pc": pc, "records": pc.maintenance_records.all(), "recommendations": pc.recommendations.filter(is_active=True, rule__is_active=True).select_related("rule"), "appointments": pc.appointments.select_related("technician__user")[:8]})
+    return render(request, "backoffice/pc_detail.html", {"active_page": "pcs", "pc": pc, "records": pc.maintenance_records.all(), "recommendations": pc.recommendations.filter(is_active=True, rule__is_active=True).select_related("rule"), "appointments": pc.appointments.select_related("technician__user")[:8], **context_for_pc(pc)})
 
 
 @staff_required

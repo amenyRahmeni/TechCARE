@@ -1,0 +1,36 @@
+{% extends 'backoffice/base.html' %}
+{% block title %}Gestion des notifications{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><p class="eyebrow"><span class="tiny-dot"></span> COMMUNIQUER AVEC VOTRE ATELIER</p><h1>Notifications & alertes<span class="title-dot">.</span></h1><p class="page-description">Informez vos clients et vos techniciens. Retrouvez vos envois et suivez leur lecture.</p></div>
+  <a class="button button-primary" href="{% url 'backoffice:notification_create' %}">{% include 'components/icon.html' with name='plus' %} Envoyer une notification</a>
+</section>
+<section class="campaign-stats" aria-label="Bilan des envois">
+  <div class="stat-card"><span class="stat-icon stat-amber">{% include 'components/icon.html' with name='bell' %}</span><div><span class="stat-label">Notifications envoyées</span><strong>{{ stats.total }}<span>diffusion{{ stats.total|pluralize }}</span></strong></div></div>
+  <div class="stat-card"><span class="stat-icon stat-neutral">{% include 'components/icon.html' with name='users' %}</span><div><span class="stat-label">Messages distribués</span><strong>{{ stats.recipients|default:0 }}<span>dans les espaces</span></strong></div></div>
+  <div class="stat-card"><span class="stat-icon stat-green">{% include 'components/icon.html' with name='check' %}</span><div><span class="stat-label">Messages lus</span><strong>{{ stats.read }}<span>par les destinataires</span></strong></div></div>
+  <div class="stat-card"><span class="stat-icon stat-neutral">{% include 'components/icon.html' with name='clock' %}</span><div><span class="stat-label">Notifications retirées</span><strong>{{ stats.withdrawn }}<span>historique conservé</span></strong></div></div>
+</section>
+<div class="campaign-layout">
+  <section class="panel campaign-panel">
+    <div class="section-heading"><h2>Historique des envois <span class="count-pill">{{ page_obj.paginator.count }}</span></h2><span class="muted small">Heure de Tunis</span></div>
+    <form method="get" class="campaign-filters" role="search">
+      <label class="search-input">{% include 'components/icon.html' with name='search' %}<span class="sr-only">Rechercher un envoi</span><input type="search" name="q" value="{{ q }}" maxlength="100" placeholder="Titre ou message…"></label>
+      <label><span class="sr-only">Public</span><select name="audience" class="form-input"><option value="">Tous les publics</option>{% for value,label in audiences %}<option value="{{ value }}" {% if audience == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label><span class="sr-only">État de l’envoi</span><select name="state" class="form-input"><option value="">Tous les états</option><option value="sent" {% if state == 'sent' %}selected{% endif %}>Envoyées</option><option value="withdrawn" {% if state == 'withdrawn' %}selected{% endif %}>Retirées</option></select></label><button class="button button-primary">Filtrer</button>
+    </form>
+    {% for campaign in page_obj %}
+    <article class="campaign-row" data-campaign-id="{{ campaign.pk }}">
+      <span class="notification-type-icon level-{{ campaign.level }}">{% include 'components/icon.html' with name='bell' %}</span>
+      <div class="campaign-row-content"><div class="campaign-meta"><span class="campaign-badge {% if campaign.withdrawn_at %}is-withdrawn{% endif %}">{% if campaign.withdrawn_at %}Retirée{% else %}Envoyée{% endif %}</span><span>{{ campaign.get_audience_display }}</span><time datetime="{{ campaign.sent_at|date:'c' }}">{{ campaign.sent_at|date:'d M Y · H:i' }}</time></div><h3><a href="{{ campaign.get_absolute_url }}">{{ campaign.title }}</a></h3><p>{{ campaign.message|truncatechars:145 }}</p><div class="campaign-meta"><span>{% include 'components/icon.html' with name='users' %} {{ campaign.recipient_count }} destinataire{{ campaign.recipient_count|pluralize }}</span><span>{% include 'components/icon.html' with name='check' %} {{ campaign.read_count }} message{{ campaign.read_count|pluralize }} lu{{ campaign.read_count|pluralize }}</span><span>Par {{ campaign.author.get_full_name|default:campaign.author.username|default:'un administrateur' }}</span></div></div>
+      <a class="campaign-open text-link" href="{{ campaign.get_absolute_url }}">Voir le suivi {% include 'components/icon.html' with name='arrow' %}</a>
+    </article>
+    {% empty %}<div class="empty-state notification-empty"><span class="empty-icon">{% include 'components/icon.html' with name='message' %}</span><h3>{% if q or audience or state %}Aucun envoi correspondant{% else %}Votre premier message commence ici{% endif %}</h3><p>{% if q or audience or state %}Modifiez les filtres pour retrouver une notification.{% else %}Choisissez un public, rédigez votre message et envoyez-le dans les espaces concernés.{% endif %}</p><a class="text-link" href="{% if q or audience or state %}{% url 'backoffice:notifications' %}{% else %}{% url 'backoffice:notification_create' %}{% endif %}">{% if q or audience or state %}Réinitialiser les filtres{% else %}Créer une notification{% endif %} {% include 'components/icon.html' with name='arrow' %}</a></div>{% endfor %}
+    {% include 'backoffice/pagination.html' %}
+  </section>
+  <aside class="campaign-aside">
+    <section class="panel campaign-panel campaign-automation"><span class="stat-icon stat-amber">{% include 'components/icon.html' with name='clock' %}</span><p class="eyebrow">LE SUIVI CONTINUE</p><h2>Les alertes automatiques.</h2><p>Les événements de l’atelier préviennent directement les personnes concernées.</p><dl><div><dt>Rappels de rendez-vous J−1</dt><dd>{{ automatic.reminders }}</dd></div><div><dt>Réservations et modifications</dt><dd>{{ automatic.appointments }}</dd></div><div><dt>Conseils de maintenance</dt><dd>{{ automatic.maintenance }}</dd></div><div><dt>Suivi, pièces et documents</dt><dd>{{ automatic.updates }}</dd></div></dl><small>Nombre de notifications courantes. Les rappels sont préparés la veille d’un rendez-vous confirmé.</small></section>
+    <section class="panel campaign-personal"><span class="stat-icon stat-neutral">{% include 'components/icon.html' with name='bell' %}</span><div><h3>Votre boîte personnelle</h3><p>{{ notification_unread_count }} notification{{ notification_unread_count|pluralize }} non lue{{ notification_unread_count|pluralize }}.</p><a class="text-link" href="{% url 'notifications:list' %}">Mes notifications {% include 'components/icon.html' with name='arrow' %}</a></div></section>
+  </aside>
+</div>
+{% endblock %}

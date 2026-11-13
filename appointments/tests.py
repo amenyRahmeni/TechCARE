@@ -287,8 +287,12 @@ class AppointmentTests(TestCase):
         url = reverse("appointments:pdf", args=[invoice.pk, "invoice"])
         for actor in (self.other_client, self.other_tech_user, self.tech_user):
             self.client.force_login(actor)
-            self.assertEqual(self.client.get(url).status_code, 404)
-            self.assertNotContains(self.client.get(reverse("appointments:documents")), invoice.number)
+            technician = actor in (self.other_tech_user, self.tech_user)
+            self.assertEqual(self.client.get(url).status_code, 403 if technician else 404)
+            if technician:
+                self.assertEqual(self.client.get(reverse("appointments:documents")).status_code, 403)
+            else:
+                self.assertNotContains(self.client.get(reverse("appointments:documents")), invoice.number)
         self.client.force_login(self.admin_user)
         self.assertEqual(self.client.get(url).status_code, 200)
         self.assertContains(self.client.get(reverse("appointments:documents")), invoice.number)
@@ -309,7 +313,9 @@ class AppointmentTests(TestCase):
             self.client.force_login(actor)
             for url in (reverse("appointments:list"), reverse("appointments:create"), appointment.get_absolute_url(), reverse("appointments:documents")):
                 with self.subTest(actor=actor.username, url=url):
-                    self.assertEqual(self.client.get(url).status_code, 200)
+                    client_page = url in (reverse("appointments:create"), reverse("appointments:documents"))
+                    forbidden = (actor == self.tech_user and client_page) or (actor.is_staff and url == reverse("appointments:create"))
+                    self.assertEqual(self.client.get(url).status_code, 403 if forbidden else 200)
 
     def test_mutations_require_csrf_and_status_get_is_not_allowed(self):
         appointment = self.book()

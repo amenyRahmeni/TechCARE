@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Appointment, BookingSlot, Intervention, Invoice, PartLine, Technician
+from .models import Appointment, AppointmentMessage, BookingSlot, Intervention, Invoice, PartLine, Technician
 
 
 @admin.register(Technician)
@@ -43,3 +43,4 @@ class InvoiceAdmin(WorkflowReadOnlyAdmin):
 
 admin.site.register(BookingSlot, WorkflowReadOnlyAdmin)
 admin.site.register(PartLine, WorkflowReadOnlyAdmin)
+admin.site.register(AppointmentMessage, WorkflowReadOnlyAdmin)

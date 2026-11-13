@@ -7,16 +7,22 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.functional import cached_property
 
 
 def invoice_number():
     return f"FAC-{timezone.localdate().year}-{uuid.uuid4().hex[:10].upper()}"
 
 
+def default_skills():
+    return ["hardware", "software", "network"]
+
+
 class Technician(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="technician_profile")
     specialty = models.CharField("spécialité", max_length=120, default="Maintenance informatique")
     is_available = models.BooleanField("accepte des rendez-vous", default=True)
+    skills = models.JSONField("compétences", default=default_skills)
 
     class Meta:
         verbose_name = "technicien"
@@ -24,6 +30,11 @@ class Technician(models.Model):
 
     def __str__(self):
         return self.user.get_full_name() or self.user.username
+
+    @cached_property
+    def quality(self):
+        from django.db.models import Avg, Count
+        return self.feedbacks.aggregate(average=Avg("rating"), count=Count("pk"))
 
 
 class Appointment(models.Model):
@@ -90,6 +101,19 @@ class BookingSlot(models.Model):
         ]
 
 
+class AppointmentMessage(models.Model):
+    appointment = models.ForeignKey(Appointment, on_delete=models.PROTECT, related_name="messages")
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    body = models.TextField("message", max_length=2000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "pk"]
+
+    def __str__(self):
+        return f"Message #{self.pk} · RDV #{self.appointment_id}"
+
+
 class Intervention(models.Model):
     appointment = models.OneToOneField(Appointment, on_delete=models.PROTECT, related_name="intervention")
     diagnosis = models.TextField("diagnostic", max_length=4000, blank=True)
@@ -115,6 +139,7 @@ class Intervention(models.Model):
 
 
 class PartLine(models.Model):
+    stock_usage = models.OneToOneField("inventory.ComponentUsage", on_delete=models.PROTECT, null=True, blank=True, related_name="invoice_line", editable=False)
     intervention = models.ForeignKey(Intervention, on_delete=models.CASCADE, related_name="parts")
     name = models.CharField("pièce / prestation", max_length=150)
     quantity = models.PositiveIntegerField("quantité", default=1, validators=[MinValueValidator(1), MaxValueValidator(1000)])
@@ -129,7 +154,8 @@ class PartLine(models.Model):
 
 
 class Invoice(models.Model):
-    intervention = models.OneToOneField(Intervention, on_delete=models.PROTECT, related_name="invoice")
+    intervention = models.OneToOneField(Intervention, on_delete=models.PROTECT, related_name="invoice", null=True, blank=True)
+    repair = models.OneToOneField("repairs.RepairRequest", on_delete=models.PROTECT, related_name="invoice", null=True, blank=True)
     number = models.CharField("numéro", max_length=30, unique=True, default=invoice_number, editable=False)
     snapshot = models.JSONField("contenu à la clôture", editable=False)
     total_amount = models.DecimalField("total (TND)", max_digits=15, decimal_places=3, editable=False)
@@ -138,6 +164,15 @@ class Invoice(models.Model):
     class Meta:
         ordering = ["-issued_at", "-pk"]
         verbose_name = "facture"
+        constraints = [models.CheckConstraint(condition=(models.Q(intervention__isnull=False, repair__isnull=True) | models.Q(intervention__isnull=True, repair__isnull=False)), name="invoice_exactly_one_source")]
+
+    @property
+    def pc(self):
+        return self.repair.pc if self.repair_id else self.intervention.appointment.pc
+
+    @property
+    def source_url(self):
+        return self.repair.get_absolute_url() if self.repair_id else self.intervention.appointment.get_absolute_url()
 
     def __str__(self):
         return self.number

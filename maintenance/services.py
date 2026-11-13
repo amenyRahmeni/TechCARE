@@ -2,6 +2,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from .models import MaintenanceRule, PC, Recommendation
+from notifications.models import Notification
+from notifications.services import notify_recommendation
 
 
 def rule_reason(pc, rule, today):
@@ -27,9 +29,17 @@ def refresh_recommendations(pc, rules=None):
     for rule in rules:
         reason = rule_reason(pc, rule, timezone.localdate())
         if reason:
-            Recommendation.objects.update_or_create(pc=pc, rule=rule, defaults={"reason": reason, "is_active": True})
+            recommendation, created = Recommendation.objects.select_for_update().get_or_create(pc=pc, rule=rule, defaults={"reason": reason, "is_active": True})
+            activated = created or not recommendation.is_active
+            if not created and (recommendation.reason != reason or not recommendation.is_active):
+                recommendation.reason, recommendation.is_active = reason, True
+                recommendation.save(update_fields=["reason", "is_active", "updated_at"])
+            if activated:
+                notify_recommendation(recommendation)
             matching_ids.append(rule.pk)
-    Recommendation.objects.filter(pc=pc).exclude(rule_id__in=matching_ids).update(is_active=False)
+    inactive = Recommendation.objects.filter(pc=pc).exclude(rule_id__in=matching_ids)
+    Notification.objects.filter(recommendation__in=inactive, kind="recommendation").update(expires_at=timezone.now())
+    inactive.update(is_active=False)
 
 
 def refresh_all_recommendations(queryset=None):

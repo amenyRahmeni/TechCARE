@@ -2,12 +2,48 @@
 import json
 import os
 from pathlib import Path
-import subprocess
+import sqlite3
 import sys
 from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+
+
+def export_legacy_data(source):
+    """Read only columns present in the old schema; new fields keep model defaults."""
+    from django.apps import apps
+    from django.db.models import BooleanField, JSONField
+
+    result = []
+    with sqlite3.connect(f"{source.as_uri()}?mode=ro", uri=True) as connection:
+        connection.row_factory = sqlite3.Row
+        def permissions(table, owner_column, owner_id):
+            return [list(row) for row in connection.execute(f'SELECT p.codename, c.app_label, c.model FROM "{table}" link JOIN auth_permission p ON p.id=link.permission_id JOIN django_content_type c ON c.id=p.content_type_id WHERE link."{owner_column}"=?', [owner_id])]
+        for label in ["auth.group", "auth.user", "maintenance.pc", "maintenance.maintenancerecord", "maintenance.maintenancerule", "maintenance.recommendation"]:
+            model = apps.get_model(label)
+            table = model._meta.db_table
+            columns = {row[1] for row in connection.execute(f'PRAGMA table_info("{table}")')}
+            if not columns:
+                raise ValueError(f"Table historique absente : {table}")
+            for row in connection.execute(f'SELECT * FROM "{table}" ORDER BY id'):
+                fields = {}
+                for field in model._meta.concrete_fields:
+                    if field.primary_key or field.column not in columns:
+                        continue
+                    value = row[field.column]
+                    if isinstance(field, BooleanField):
+                        value = bool(value)
+                    elif isinstance(field, JSONField) and value is not None:
+                        value = json.loads(value)
+                    fields[field.name] = value
+                if label == "auth.group":
+                    fields["permissions"] = permissions("auth_group_permissions", "group_id", row["id"])
+                elif label == "auth.user":
+                    fields["groups"] = [[group[0]] for group in connection.execute("SELECT g.name FROM auth_user_groups link JOIN auth_group g ON g.id=link.group_id WHERE link.user_id=?", [row["id"]])]
+                    fields["user_permissions"] = permissions("auth_user_user_permissions", "user_id", row["id"])
+                result.append({"model": label, "pk": row["id"], "fields": fields})
+    return result
 
 
 def main():
@@ -27,14 +63,10 @@ def main():
         raise SystemExit("La destination doit être MySQL.")
     if get_user_model().objects.exists() or PC.objects.exists():
         raise SystemExit("Import arrêté : MySQL contient déjà des utilisateurs ou des PC. Utilisez une base vide pour éviter tout écrasement.")
-    export = subprocess.run(
-        [sys.executable, str(ROOT / "manage.py"), "dumpdata", "auth.group", "auth.user", "maintenance", "--natural-foreign", "--settings=config.sqlite_export_settings", "--indent=2"],
-        cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
-        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
-    )
-    if export.returncode:
-        raise SystemExit("L’export SQLite a échoué. Aucune donnée MySQL n’a été modifiée.\n" + export.stderr)
-    data = json.loads(export.stdout)
+    try:
+        data = export_legacy_data(ROOT / "db.sqlite3")
+    except (sqlite3.Error, ValueError):
+        raise SystemExit("L’export SQLite a échoué. Vérifiez la structure de la source ; aucune donnée MySQL n’a été modifiée.") from None
     for record in data:
         if record["model"] == "maintenance.pc":
             record["fields"]["serial_number"] = (record["fields"].get("serial_number") or "").strip() or None

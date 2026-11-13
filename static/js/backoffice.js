@@ -6,7 +6,7 @@
     const technician = role.value === 'technician';
     form.querySelectorAll('[data-technician-field]').forEach(element => {
       element.hidden = !technician;
-      element.querySelectorAll('input').forEach(input => {
+      element.querySelectorAll('input, select').forEach(input => {
         input.disabled = !technician;
         if (input.name === 'specialty') input.required = technician;
       });

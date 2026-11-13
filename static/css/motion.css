@@ -1,0 +1,83 @@
+/* Shared motion layer. Content stays visible when JavaScript is unavailable. */
+:root {
+  --motion-fast: 180ms;
+  --motion-base: 260ms;
+  --motion-ease: cubic-bezier(.22, .75, .25, 1);
+}
+
+.button, .icon-button, .nav-link, .text-link, .filter-tabs a,
+.showcase-tabs a, .faq-chip, .pagination a, .notification-bell {
+  transition: background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease, color var(--motion-fast) ease,
+    box-shadow var(--motion-base) ease, transform var(--motion-fast) var(--motion-ease);
+}
+.button > .icon, .nav-link > .icon, .text-link > .icon {
+  transition: transform var(--motion-base) var(--motion-ease);
+}
+.form-input, .search-input, .password-field, .campaign-recipient {
+  transition: border-color var(--motion-fast) ease,
+    background-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+}
+.pc-card, .component-card, .stat-card, .technician-card,
+.recommendation-card, .admin-rule-card, .add-pc-card {
+  transition: transform var(--motion-base) var(--motion-ease),
+    box-shadow var(--motion-base) ease, border-color var(--motion-fast) ease;
+}
+.faq-plus { transition: transform var(--motion-base) var(--motion-ease); }
+.notification-bell > .icon { transform-origin: center; transform-box: fill-box; }
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .pc-card:hover, .component-card:hover, .stat-card:hover,
+  .technician-card:hover, .recommendation-card:hover, .admin-rule-card:hover,
+  .add-pc-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent-line);
+    box-shadow: 0 12px 28px rgb(0 0 0 / .22);
+  }
+  .button:not(:disabled):not([aria-disabled="true"]):hover {
+    transform: translateY(-1px);
+  }
+  .button-primary:not(:disabled):hover {
+    box-shadow: 0 6px 20px rgb(247 127 0 / .18);
+  }
+  .button-primary:not(:disabled):hover > .icon,
+  .text-link:hover > .icon, .nav-link:hover > .icon {
+    transform: translateX(2px);
+  }
+  .icon-button:not(:disabled):hover { transform: translateY(-1px); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .button:not(:disabled):active { transform: translateY(1px) scale(.985); }
+  .icon-button:not(:disabled):active { transform: scale(.94); }
+  .sidebar-overlay:not([hidden]) { animation: techcare-overlay-in 180ms ease-out both; }
+  .button.is-pending::before { animation: techcare-busy 750ms linear infinite; }
+}
+@media (max-width: 900px) and (prefers-reduced-motion: no-preference) {
+  .sidebar { transition: transform 300ms var(--motion-ease); }
+}
+
+.button.is-pending { cursor: progress; }
+.button.is-pending::before {
+  content: "";
+  display: inline-block;
+  flex: 0 0 13px;
+  width: 13px;
+  height: 13px;
+  box-sizing: border-box;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+}
+.button.is-pending > .icon { display: none; }
+
+@keyframes techcare-busy { to { transform: rotate(360deg); } }
+@keyframes techcare-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}

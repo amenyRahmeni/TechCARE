@@ -15,9 +15,20 @@ def style_fields(form):
 
 
 class AccountForm(forms.ModelForm):
+    def clean_email(self):
+        from accounts.forms import clean_email
+        return clean_email(self.cleaned_data.get("email", ""), self.instance.pk)
+
+    def clean_username(self):
+        value = self.cleaned_data["username"]
+        if User.objects.filter(username__iexact=value).exclude(pk=self.instance.pk).exists() or User.objects.filter(email__iexact=value).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Cet identifiant est déjà utilisé.")
+        return value
+
     role = forms.ChoiceField(label="Rôle", choices=[("client", "Client"), ("technician", "Technicien"), ("admin", "Administrateur")])
     specialty = forms.CharField(label="Spécialité du technicien", max_length=120, required=False)
     is_available = forms.BooleanField(label="Accepte de nouveaux rendez-vous", required=False, initial=True)
+    skills = forms.MultipleChoiceField(label="Compétences de réparation", choices=[("hardware", "Matériel"), ("software", "Logiciel / système"), ("network", "Réseau")], required=False, help_text="Sans sélection, les compétences sont déduites de la spécialité ; maintenance générale : les trois domaines.")
     password1 = forms.CharField(label="Mot de passe", required=False, strip=False, widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}), help_text="Au moins 8 caractères. Évitez les mots de passe courants et uniquement numériques.")
     password2 = forms.CharField(label="Confirmer le mot de passe", required=False, strip=False, widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}))
 
@@ -35,7 +46,7 @@ class AccountForm(forms.ModelForm):
             profile = getattr(self.instance, "technician_profile", None)
             self.initial["role"] = "admin" if self.instance.is_staff else "technician" if profile else "client"
             if profile:
-                self.initial.update(specialty=profile.specialty, is_available=profile.is_available)
+                self.initial.update(specialty=profile.specialty, is_available=profile.is_available, skills=profile.skills)
             self.fields["password1"].label = "Nouveau mot de passe"
             self.fields["password1"].help_text = "Laissez les deux champs vides pour conserver le mot de passe actuel."
         else:
@@ -53,10 +64,13 @@ class AccountForm(forms.ModelForm):
         if self.instance.is_superuser and role != "admin":
             self.add_error("role", "Le rôle de ce superadministrateur doit être conservé.")
         profile = getattr(self.instance, "technician_profile", None)
-        if profile and role != "technician" and profile.appointments.exists():
-            self.add_error("role", "Ce technicien a un historique de rendez-vous. Conservez son rôle et désactivez sa disponibilité si nécessaire.")
+        if profile and role != "technician" and (profile.appointments.exists() or profile.repair_requests.exists() or profile.component_listings.exists()):
+            self.add_error("role", "Ce technicien possède des rendez-vous, des réparations ou des annonces. Conservez son rôle et désactivez son compte si nécessaire.")
         if role == "technician" and not data.get("specialty"):
             self.add_error("specialty", "Indiquez la spécialité du technicien.")
+        if role == "technician" and not data.get("skills"):
+            specialty = data.get("specialty", "").casefold()
+            data["skills"] = ["hardware"] if "matériel" in specialty else ["software"] if "logiciel" in specialty else ["network"] if "réseau" in specialty else ["hardware", "software", "network"]
         password = data.get("password1")
         if password != data.get("password2"):
             self.add_error("password2", "Les deux mots de passe doivent être identiques.")

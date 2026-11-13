@@ -1,6 +1,18 @@
-# TECHcare — PC, rendez-vous, interventions et PDF
+# TECHcare — PC, réparations, composants et maintenance
 
-Application réalisée en **HTML, CSS, JavaScript natif et Django**, avec **MySQL**. Les modules 2 (PC & Maintenance), 3 (Rendez-vous & Interventions) et 7 (Rapports & Factures PDF) sont disponibles. Le serveur MySQL peut être installé sur votre PC ou hébergé en ligne ; ses coordonnées se configurent dans `.env`. Aucun framework frontend ni serveur Node n’est nécessaire.
+Application réalisée en **HTML, CSS, JavaScript natif et Django**, avec **MySQL**. Les **8 modules du backlog** et le module transverse sont disponibles, avec des espaces distincts pour les clients, les techniciens et les administrateurs. Le serveur MySQL peut être installé sur votre PC ou hébergé en ligne ; ses coordonnées se configurent dans `.env`. Aucun framework frontend ni serveur Node n’est nécessaire.
+
+La [couverture détaillée du backlog](docs/COUVERTURE_BACKLOG.md) associe chaque user story à ses interfaces et fichiers. Les derniers ajouts comprennent l’inscription client, la connexion par e-mail, BCrypt, les jetons JWT, le profil, la messagerie des rendez-vous, les avis après clôture et la FAQ recherchable administrable.
+
+La [prédiction des pannes par machine learning](docs/PREDICTION_PANNES_ML.md) ajoute une Random Forest en Python et trois niveaux de risque : faible, moyen, élevé. La version initiale utilise **des données simulées**, clairement signalées dans les interfaces. Client et technicien analysent leurs PC accessibles ; l’administrateur consulte les métriques et peut réentraîner le modèle avec un CSV. Après `migrate`, lancer `manage.py train_failure_model --demo` pour préparer la démonstration.
+
+Le module transverse **Notifications et alertes** ajoute un centre personnel, les événements des rendez-vous et réparations, les recommandations, les rappels J‑1, les messages de réparation, les alertes de stock et les notifications navigateur Web Push. Voir [le guide des notifications](docs/NOTIFICATIONS.md) pour les réglages et la couverture des PDF.
+
+Les modules **Assistance & Réparation** et **Composants & Stock** comprennent les photos privées, le choix d’un technicien qualifié par le client, le suivi et la discussion d’une panne, le catalogue filtrable, la compatibilité, les sorties/retours tracés et l’intégration aux factures. Voir [le guide des modules 4 et 5](docs/MODULES_4_5.md), avec les adresses, fichiers et le parcours de démonstration. Le catalogue démarre avec douze catégories ; les références et quantités réelles se saisissent dans le backoffice.
+
+La rubrique **Vitrine composants**, réservée aux techniciens, présente leurs propres annonces de vente avec nom du vendeur, ville, prix et contact. Chaque technicien peut publier et gérer ses annonces dans **Mes annonces**. Les clients ordinaires n’accèdent pas à cette rubrique. Le [guide de la vitrine](docs/VITRINE_TECHNICIENS.md) décrit le parcours et les droits ; le stock d’intervention se trouve dans **Stock de l’atelier**.
+
+L’[espace technicien](docs/ESPACE_TECHNICIEN.md) ouvre **Mes interventions** et présente les prises en charge assignées, les réparations, la vitrine, le stock et les notifications. Les PC concernés sont consultables en lecture seule. La réservation de nouveaux rendez-vous et la déclaration de pannes sont réservées aux clients. La rubrique Assistance & réparation est absente de l’administration ; le client choisit son technicien. Les PC et documents restent gérés selon les droits de chaque espace.
 
 ## Démarrer sous Windows
 
@@ -86,13 +98,32 @@ Créer les deux profils techniciens de démonstration, si nécessaire :
 
 Cette commande s’exécute après le transfert des anciennes données. Elle conserve les comptes et les mots de passe existants et ne crée aucun rendez-vous ni facture fictive dans votre base.
 
+Pour remplir la **Vitrine composants** avec les 12 annonces de matériel de démonstration demandées (6 chez Amine et 6 chez Sarra), exécuter une fois :
+
+```powershell
+.\.venv\Scripts\python.exe manage.py seed_showcase
+```
+
+Les références portent « DÉMO » et les descriptions signalent les prix et quantités fictifs. Une nouvelle exécution conserve les annonces existantes, même modifiées ou vendues. Voir [le guide de la vitrine](docs/VITRINE_TECHNICIENS.md).
+
 ```powershell
 .\.venv\Scripts\python.exe manage.py runserver
 ```
 
 Ouvrir **http://127.0.0.1:8000/**. Il n’est pas nécessaire d’activer l’environnement virtuel.
 
-L’application utilise désormais le backend `django.db.backends.mysql`, le pilote `mysqlclient`, le jeu de caractères `utf8mb4` et des tables InnoDB. Aucun retour automatique à SQLite n’est effectué. L’ancien fichier `db.sqlite3` est conservé uniquement comme source de transfert ou sauvegarde.
+L’application utilise le backend `django.db.backends.mysql`, le pilote Python `PyMySQL` (avec l’extra `rsa` pour l’authentification MySQL 8), le jeu de caractères `utf8mb4` et des tables InnoDB. Le pilote est initialisé dans `config/__init__.py`, pour les commandes Django et le serveur WSGI. Aucun retour automatique à SQLite n’est effectué. L’ancien fichier `db.sqlite3` est conservé uniquement comme source de transfert ou sauvegarde.
+
+### Démarrer avec les rappels et notifications navigateur
+
+Après installation des dépendances et application des migrations :
+
+```powershell
+.\.venv\Scripts\python.exe manage.py setup_webpush
+.\.venv\Scripts\python.exe manage.py run_techcare
+```
+
+Ce lancement inclut le serveur de développement et le traitement automatique des alertes. La cloche et la page `/notifications/` sont disponibles dans les trois espaces. Les notifications système nécessitent un clic sur **Activer les alertes** et l’autorisation du navigateur. Les clés privées restent dans `.private/`, exclu de Git. Pour un traitement séparé ou planifié, utiliser `manage.py run_notifications` ou `manage.py run_notifications --once` ; détails dans [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md).
 
 ### Comptes de démonstration locaux
 
@@ -113,7 +144,7 @@ Pour un compte administrateur personnel :
 
 ## Périmètre livré
 
-Les demandes des **modules 2, 3 et 7** du backlog sont reprises avec la stack demandée : les références FXML, repositories Java et Spring du PDF sont remplacées par des templates, des vues, des formulaires et l’ORM Django.
+Les demandes des **modules 1 à 8 et du module transverse** du backlog sont reprises avec la stack demandée : les références FXML, repositories Java et Spring du PDF sont remplacées par des templates, des vues, des formulaires et l’ORM Django.
 
 - Ajouter, consulter, modifier et supprimer ses PC, avec confirmation avant suppression.
 - Enregistrer nom, marque, modèle, type, OS, processeur, RAM, stockage, numéro de série, date d’achat et notes.
@@ -125,8 +156,14 @@ Les demandes des **modules 2, 3 et 7** du backlog sont reprises avec la stack de
 - Suivre les interventions assignées côté technicien et mettre à jour leurs statuts.
 - Renseigner diagnostic, solution, pièces utilisées et main-d’œuvre.
 - Télécharger les rapports et factures PDF après la clôture d’une intervention.
+- Déclarer une panne avec photo privée, choisir un technicien qualifié et suivre la réparation avec une discussion dédiée.
+- Rechercher les composants, vérifier leur compatibilité et enregistrer les entrées, utilisations et retours de stock.
+- Créer un compte client actif, se connecter par e-mail ou identifiant, modifier son profil et son mot de passe.
+- Échanger des messages privés associés aux rendez-vous et aux demandes de réparation.
+- Évaluer une prise en charge clôturée et consulter la note moyenne du technicien.
+- Consulter une FAQ interactive recherchable, gérée par l’administrateur.
 
-La connexion utilise les sessions Django pour isoler les données : chaque client accède uniquement à ses PC, historiques et recommandations. La création de comptes relève du module 1 ; elle reste ici dans l’administration Django.
+La connexion du site utilise les sessions Django et la protection CSRF pour isoler les données. L’inscription client est disponible dans `/inscription/` ; l’administrateur crée les comptes techniciens depuis `/backoffice/comptes/nouveau/`. Des endpoints Django de génération et vérification de JWT complètent l’authentification du module 1 ; voir [la documentation du backlog](docs/COUVERTURE_BACKLOG.md#authentification).
 
 Les boutons « Prendre rendez-vous » des recommandations ouvrent le formulaire réel avec le PC et le motif préremplis. Les liens « Rendez-vous » et « Rapports & factures » du menu sont actifs.
 
@@ -149,7 +186,7 @@ L’annulation reste possible avant la réparation. Un changement de créneau re
 
 ## Rapports et factures PDF
 
-Le technicien renseigne le diagnostic, les travaux réalisés, les pièces (jusqu’à 20 lignes) et la main-d’œuvre, puis termine l’intervention. Les montants sont calculés côté serveur avec `Decimal`, en **TND avec trois décimales**. La saisie des pièces ne gère pas le stock du module 5.
+Le technicien renseigne le diagnostic, les travaux réalisés, les lignes manuelles de prestation (jusqu’à 20 lignes) et la main-d’œuvre, puis termine l’intervention. Les montants sont calculés côté serveur avec `Decimal`, en **TND avec trois décimales**. Les composants du catalogue se valident dans le panneau « Composants du stock » : leur quantité est décrémentée et leur coût entre dans le même total. Les lignes manuelles restent distinctes du stock.
 
 À la clôture, dans une même transaction :
 
@@ -200,9 +237,10 @@ Ouvrir **http://127.0.0.1:8000/backoffice/** et se connecter avec `admin_demo` /
 - **Comptes & clients** : recherche, filtres, pagination, création, modification, activation et suspension. Les mots de passe sont hachés ; laisser les champs vides lors d’une modification conserve le mot de passe actuel.
 - **Techniciens** : spécialité, disponibilité à la réservation et nombre d’interventions. Créer un compte avec le rôle Technicien ajoute son profil.
 - **Parc informatique** : tous les PC, ajout pour un client, modification, configuration, historique et recommandations. Le propriétaire d’un PC existant est conservé. Une fiche liée à un rendez-vous ne peut pas être supprimée.
-- **Rendez-vous & suivi** : réservation pour le propriétaire du PC, modification du créneau et du technicien, transitions de statut, compte rendu, pièces et clôture.
+- **Rendez-vous & suivi** : consultation des rendez-vous créés par les clients, modification du créneau et du technicien, transitions de statut, compte rendu, pièces et clôture. La création de nouveaux rendez-vous est réservée aux clients ; les URL de création sont également bloquées pour les administrateurs.
 - **Rapports & factures** : recherche et téléchargement des documents PDF de tous les clients.
 - **Règles de maintenance** : création, modification, activation et désactivation, avec recalcul des recommandations.
+- **Gestion des notifications** : `/backoffice/notifications/`, envoi aux clients, aux techniciens ou à des comptes sélectionnés, aperçu, priorité, historique, suivi des lectures et retrait d’une diffusion. Les messages apparaissent dans le centre personnel de leurs destinataires ; les push nécessitent un abonnement navigateur actif. Les rappels J−1 et les alertes de statut continuent automatiquement. Voir [le guide notifications](docs/NOTIFICATIONS.md).
 
 L’accès est réservé aux utilisateurs actifs avec `is_staff=True`. Seul un superadministrateur peut créer ou modifier les comptes administrateurs. Il est impossible de suspendre son propre compte ou de retirer son propre rôle. Un technicien ayant un historique conserve son profil ; sa disponibilité ou son compte peuvent être désactivés. La suspension conserve les données et les rendez-vous existants. Les actions sur les comptes, PC et règles sont enregistrées dans le journal d’administration Django. Les actions sensibles utilisent POST et la protection CSRF.
 
@@ -213,6 +251,10 @@ L’administration Django standard reste disponible à `/admin/` pour les opéra
 Les espaces client, technicien et administrateur partagent le thème sombre TECHcare. La palette se règle dans `static/css/theme.css` : fond `#0B1320`, surfaces `#0D1B2A`, cartes `#1A2332`, bordures et éléments surélevés `#243247`, actions `#F77F00` / `#FF9F1C`, titres `#FFFFFF`, texte `#D6DCE5` et informations secondaires `#9AA8B8`.
 
 Les formulaires, menus mobiles, tableaux, confirmations et états des interventions utilisent ces mêmes variables. Les boutons principaux orange portent un texte bleu nuit pour garder un contraste lisible. L’administration Django standard dispose du même thème dans `static/css/admin-theme.css`.
+
+Les interfaces partagent également `static/css/motion.css` et `static/js/motion.js`, chargés par `templates/components/motion_assets.html`. Les titres et cartes apparaissent progressivement, les graphiques se dessinent à leur arrivée dans l’écran, et les boutons, menus, FAQ et nouvelles notifications reçoivent des transitions discrètes. Les entrées se jouent une seule fois par élément et ne masquent pas le contenu en l’absence de JavaScript. La préférence système `prefers-reduced-motion` désactive les animations, y compris si elle change pendant la navigation. Les champs qui reçoivent le focus restent immédiatement visibles ; les formulaires conservent la validation et les soumissions Django habituelles.
+
+La couche d’animation a été vérifiée dans Chrome avec 57 contrôles d’affichage entre 320 et 1440 pixels, sur connexion/inscription et les trois espaces. Les vérifications couvrent aussi le menu mobile, la FAQ, les notifications, la réduction des mouvements et l’affichage sans JavaScript.
 
 ## Structure
 
@@ -234,6 +276,11 @@ appointments/services.py  Disponibilité, transitions, clôture atomique et hist
 appointments/pdf.py     Génération des rapports et factures PDF
 appointments/tests.py   Parcours, permissions, concurrence MySQL et contenu PDF
 backoffice/             Tableau de bord, gestion des comptes, PC et règles ; accès administrateur
+repairs/                Pannes, photos privées, affectation, diagnostic, discussion et résolution
+inventory/              Catalogue, compatibilité, utilisations et mouvements de stock
+templates/repairs/      Interfaces du module Assistance & Réparation
+templates/inventory/    Catalogue et gestion du stock
+static/css/modules.css Styles responsive des modules 4 et 5
 templates/backoffice/   Interfaces du backoffice
 static/css/backoffice.css  Style responsive du backoffice
 static/css/theme.css     Palette sombre et styles communs des interfaces
@@ -263,6 +310,13 @@ GRANT ALL PRIVILEGES ON test_atelier_pc.* TO 'atelier_pc'@'localhost';
 Les tests couvrent notamment le CRUD, l’isolation entre clients, la protection CSRF, les dates invalides, les règles, la suppression en cascade et les filtres. Ils vérifient aussi l’unicité MySQL des numéros de série, les réservations concurrentes, les transitions autorisées, les coûts exacts, la clôture sans doublon et le contenu des PDF, y compris les rapports sur plusieurs pages. Le backoffice est testé pour les permissions, les rôles, les mots de passe, la suspension des comptes, la gestion des PC et règles, les statistiques et le parcours administrateur jusqu’aux PDF. Les numéros de série sont sensibles à la casse ; les valeurs vides sont enregistrées comme `NULL` pour conserver cette possibilité avec l’index unique MySQL.
 
 ### En cas d’erreur de connexion
+
+- **DLL `_mysql` bloquée / `Error loading MySQLdb module`** : le projet utilise maintenant PyMySQL pour éviter la dépendance au pilote natif MySQL bloqué par Windows. Depuis le dossier du projet, réinstaller les dépendances puis lancer le serveur avec l’environnement virtuel :
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe manage.py runserver
+```
 
 - **2003 / connexion refusée** : vérifier que MySQL est démarré et que l’hôte/port de `.env` sont corrects.
 - **1045 / accès refusé** : vérifier `.env`, puis lancer `scripts/setup_mysql.py` pour synchroniser le compte avec ce fichier. `CREATE USER IF NOT EXISTS` seul ne change pas le mot de passe d’un compte déjà existant.

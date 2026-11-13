@@ -19,12 +19,12 @@ class MaintenanceRecordAdmin(admin.ModelAdmin):
         return ["pc"] if obj else []
 
     def has_change_permission(self, request, obj=None):
-        if obj and hasattr(obj, "intervention"):
+        if obj and (hasattr(obj, "intervention") or hasattr(obj, "repair_request")):
             return False
         return super().has_change_permission(request, obj)
 
     def has_delete_permission(self, request, obj=None):
-        if obj and hasattr(obj, "intervention"):
+        if obj and (hasattr(obj, "intervention") or hasattr(obj, "repair_request")):
             return False
         return super().has_delete_permission(request, obj)
 

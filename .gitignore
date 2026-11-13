@@ -10,6 +10,7 @@ staticfiles/
 !.env.example
 backups/
 .qa/
+.private/
 .codex/
 .agents/
 .aws/

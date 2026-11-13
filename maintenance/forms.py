@@ -7,7 +7,7 @@ from .models import PC
 class PCForm(forms.ModelForm):
     class Meta:
         model = PC
-        fields = ["name", "device_type", "brand", "model", "serial_number", "purchased_on", "operating_system", "processor", "ram_gb", "storage_gb", "storage_type", "notes"]
+        fields = ["name", "device_type", "brand", "model", "serial_number", "purchased_on", "operating_system", "processor", "ram_gb", "storage_gb", "storage_type", "ram_type", "ram_format", "storage_interface", "cpu_socket", "notes"]
         widgets = {
             "name": forms.TextInput(attrs={"placeholder": "Ex. Mon PC de travail", "autofocus": True}),
             "brand": forms.TextInput(attrs={"placeholder": "Ex. Dell", "list": "brands"}),

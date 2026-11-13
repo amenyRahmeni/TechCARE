@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta
 
 from django import forms
-from django.forms import inlineformset_factory
+from django.forms import BaseInlineFormSet, inlineformset_factory
 from django.utils import timezone
 
 from maintenance.models import PC
 from .models import Appointment, Intervention, PartLine, Technician
 from .scheduling import validate_start, working_times
+from .permissions import is_technician_workspace
 
 
 class StyledFormMixin:
@@ -27,7 +28,7 @@ class AppointmentForm(StyledFormMixin, forms.Form):
     def __init__(self, *args, actor, appointment=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["pc"].queryset = PC.objects.all() if actor.is_staff else PC.objects.filter(owner=actor)
-        if appointment and not actor.is_staff and appointment.client_id != actor.pk:
+        if appointment and (is_technician_workspace(actor) or (not actor.is_staff and appointment.client_id != actor.pk)):
             self.fields["pc"].queryset = PC.objects.filter(pk=appointment.pc_id)
         self.fields["technician"].queryset = Technician.objects.filter(is_available=True, user__is_active=True).select_related("user")
         self.fields["date"].widget.attrs.update({"min": timezone.localdate().isoformat(), "max": (timezone.localdate() + timedelta(days=365)).isoformat()})
@@ -68,4 +69,10 @@ class PartLineForm(StyledFormMixin, forms.ModelForm):
         self.style_fields()
 
 
-PartLineFormSet = inlineformset_factory(Intervention, PartLine, form=PartLineForm, extra=1, can_delete=True, max_num=20, validate_max=True, absolute_max=40)
+class ManualPartFormSet(BaseInlineFormSet):
+    def __init__(self, *args, **kwargs):
+        kwargs["queryset"] = PartLine.objects.filter(stock_usage__isnull=True)
+        super().__init__(*args, **kwargs)
+
+
+PartLineFormSet = inlineformset_factory(Intervention, PartLine, form=PartLineForm, formset=ManualPartFormSet, extra=1, can_delete=True, max_num=20, validate_max=True, absolute_max=40)
